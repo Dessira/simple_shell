@@ -1,64 +1,59 @@
 #include "shell.h"
 
 /**
- * read_cmd - reads user input
- * Return: pointer
+ * _getline - Gets line of user input
+ * Return: Pointer to buffer of user input
  */
-
-char *read_cmd(void)
+char *_getline(void)
 {
-	int i;
-	char *command = NULL;
+	int temp;
+	char *line = NULL;
 	size_t size = 0;
 
-	i = getline(&command, &size, stdin);
-
-	if (i == EOF)
+	temp = getline(&line, &size, stdin);
+	if (temp == EOF)
 	{
 		if (isatty(STDIN_FILENO))
-		{
 			write(1, "\n", 1);
-		}
 		exit(0);
 	}
-	return (command);
+	return (line);
 }
 /**
- * tokenize - assigns tokens and split cmd
- * @command: input command
- * Return: tokenized string
+ * split_line - Splits line into args
+ * @line: Line of user input
+ * Return: Array of args of user input
  */
-
-char **tokenize(char *command)
+char **split_line(char *line)
 {
-	size_t bufsize = TOKENS_BUFFER_SIZE;
+	size_t buffer_size = TOKENS_BUFFER_SIZE;
+	char **tokens = malloc(sizeof(char *) * buffer_size);
 	char *token;
-	char **tokens = malloc(sizeof(char *) * bufsize);
-	int i = 0;
+	int pos = 0;
 
 	if (!tokens)
 	{
-		perror("Error");
+		perror("Could not allocate space for tokens\n");
 		exit(0);
 	}
-	token = strtok(command, TOKEN_DELIMITERS);
+	token = strtok(line, TOKEN_DELIMITERS);
 	while (token)
 	{
-		tokens[i] = token;
+		tokens[pos] = token;
 		token = strtok(NULL, TOKEN_DELIMITERS);
-		i++;
+		pos++;
 	}
-	tokens[i] = NULL;
+	tokens[pos] = NULL;
 	return (tokens);
 }
 /**
- * check_builtin - checks if command is builtin
- * @args: arguments
- * @command: buffer containing command
- * @env: environment
- * Return: 1 or 0
+ * check_for_builtins - Checks for builtins
+ * @args: Arguments passed from prompt
+ * @line: Buffer with line of input from user
+ * @env: Environment
+ * Return: 1 if builtins exist, 0 if they don't
  */
-int check_builtin(char **args, char *command, char **env)
+int check_for_builtins(char **args, char *line, char **env)
 {
 	builtins_t list[] = {
 		{"exit", exit_shell},
@@ -71,49 +66,51 @@ int check_builtin(char **args, char *command, char **env)
 	{
 		if (_strcmp(list[i].arg, args[0]) == 0)
 		{
-			list[i].builtin(args, command, env);
+			list[i].builtin(args, line, env);
 			return (1);
 		}
 	}
 	return (0);
 }
 /**
- * execute - executes command
- * @args: arguments
- * Return: 1
+ * launch_prog - Forks and launches unix cmd
+ * @args: Args for cmd
+ * Return: 1 on success
  */
-int execute(char **args)
+int launch_prog(char **args)
 {
-	pid_t child, parent;
-	int stat;
+	pid_t pid, wpid;
+	int status;
 
-	child = fork();
-	if (child == 0)
+	pid = fork();
+	if (pid == 0)
 	{
 		if (execve(args[0], args, NULL) == -1)
 		{
-			perror("Error");
+			perror("Failed to execute command\n");
 			exit(0);
 		}
-		else if (child < 0)
-		{
-			perror("Error");
-			exit(0);
-		}
-		else
-			do{
-				parent = waitpid(child, &stat, WUNTRACED);
-			}while (!WIFEXITED(stat) && WIFSIGNALED(stat));
 	}
-	(void)parent;
+	else if (pid < 0)
+	{
+		perror("Error forking\n");
+		exit(0);
+	}
+	else
+	{
+		do {
+			wpid = waitpid(pid, &status, WUNTRACED);
+		} while (!WIFEXITED(status) && WIFSIGNALED(status));
+	}
+	(void)wpid;
 	return (1);
 }
 /**
- * builtin_finder - finds builtins
- * @args: arguments
- * Return: 1 or 0
+ * builtins_checker - Checks for builtins
+ * @args: Arguments passed from prompt
+ * Return: 1 if builtins exist, 0 if they don't
  */
-int builtin_finder(char **args)
+int builtins_checker(char **args)
 {
 	int i;
 	builtins_t list[] = {
@@ -121,6 +118,7 @@ int builtin_finder(char **args)
 		{"env", env_shell},
 		{NULL, NULL}
 	};
+
 	for (i = 0; list[i].arg != NULL; i++)
 	{
 		if (_strcmp(list[i].arg, args[0]) == 0)

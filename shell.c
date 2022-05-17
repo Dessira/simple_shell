@@ -1,44 +1,43 @@
 #include "shell.h"
-
 /**
- * main - main shell function
- * @argc: number of arguments
- * @argv: arguments array
- * Return: 0
+ * shell - Infinite loop that runs shell
+ * @ac: Arg count
+ * @av: args passed to shell at beginning of prog
+ * @env: Environment
+ * Return: Void
  */
-
 void shell(int ac, char **av, char **env)
 {
-	char *command;
+	char *line;
 	char **args;
-	int stat = 1;
-	int i;
-	char *name, *tmp = NULL;
-	char *err = "Error";
+	int status = 1;
+	char *tmp = NULL;
+	char *er;
+	char *filename;
+	int flow;
 
-	do{
+	er = "Error";
+	do {
 		prompt();
-		command = read_cmd();
-		args = tokenize(command);
-		i = bridge(args[0], args);
-
-		if (i == 2)
+		line = _getline();
+		args = split_line(line);
+		flow = bridge(args[0], args);
+		if (flow == 2)
 		{
-			name = args[0];
-			args[0] = check_path(args[0], tmp, err); 
-			if (args[0] == err)
+			filename = args[0];
+			args[0] = find_path(args[0], tmp, er);
+			if (args[0] == er)
 			{
-				args[0] = check_cwd(name, err);
-				if (args[0] == name)
-					write(1, err, 5);
+				args[0] = search_cwd(filename, er);
+				if (args[0] == filename)
+					write(1, er, 5);
 			}
 		}
-		if (args[0] != err)
-			stat = execute_cmd(args, command, env, i);
-		free(command);
+		if (args[0] != er)
+			status = execute_prog(args, line, env, flow);
+		free(line);
 		free(args);
-
-	}while (stat);
+	} while (status);
 	if (!ac)
 		(void)ac;
 	if (!av)

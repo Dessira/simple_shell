@@ -24,6 +24,17 @@ int _strcmp(char *s1, char *s2)
 	return (0);
 }
 /**
+ * prompt - prints $ for prompt
+ * Return: void
+ */
+void prompt(void)
+{
+	if (isatty(STDIN_FILENO))
+	{
+		write(1, "$ ", 2);
+	}
+}
+/**
  * _strstr - locates sub string
  * @haystack: input one
  * @needle: input two

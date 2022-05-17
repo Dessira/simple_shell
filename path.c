@@ -1,100 +1,98 @@
 #include "shell.h"
-
 /**
- * check_path - finds the path
- * @name: name of file
- * @tmp: stores path
- * @err: error
- * Return: path or error
+ * find_path - finds path
+ * @filename: file name
+ * @tmp: saves the PATH string
+ * @er: an error message
+ * Return: Success - path/filename, failure - er
  */
-char *check_path(char *name, char *tmp, char *err)
+
+char *find_path(char *filename, char *tmp, char *er)
 {
 	DIR *dir;
 	struct dirent *sd;
-	char *f_path, *path, *buf;
+	char *file_path, *path, *ret;
 	int len = 0;
 
-	while (name[len])
+	while (filename[len])
 		len++;
 	path = _getenv("PATH");
-	tmp = store_path(tmp, path);
-	f_path = strtok(tmp, ":");
-
-	while (f_path)
+	tmp = save_path(tmp, path);
+	file_path = strtok(tmp, ":");
+	while (file_path)
 	{
-		dir = opendir(f_path);
+		dir = opendir(file_path);
 		if (!dir)
 		{
-			printf("Error");
+			printf("Error! Unable to open directory.\n");
 			exit(0);
 		}
 		while ((sd = readdir(dir)))
 		{
-			buf = _readdir(err, sd, name, len, f_path, tmp);
-			if (buf != err)
+			ret = read_dir(er, sd, filename, len, file_path, tmp);
+			if (ret != er)
 			{
 				closedir(dir);
-				if (!(access(buf, X_OK)))
-					return (buf);
+				if (!(access(ret, X_OK)))
+					return (ret);
 			}
 		}
-
 		closedir(dir);
-		f_path = strtok(NULL, ":");
+		file_path = strtok(NULL, ":");
 	}
-
 	path = NULL;
 	free(tmp);
-	return (err);
+	return (er);
 }
+
 /**
- * _readdir - reads dirctory file names
- *  @err: error
- *  @s: struct
- *  @name: file name
- *  @fp: file path
- *  @tmp: contains path variable
- *  @len: length of file name
- *  Return: path of file or error
+ *read_dir - opens and reads directory file names in search of fil
+ *@er: error message
+ *@s: struct containing info about a files in a directory
+ *@fil: name of file being searched for
+ *@fp: directory being searched through
+ *@t: string containing the PATH variable's value
+ *@l: length of filename
+ *Return: success - path of fil/fil, else er
  */
-char *_readdir(char *err, struct dirent *s, char *name, int len, char *fp, char *tmp)
+char *read_dir(char *er, struct dirent *s, char *fil, int l, char *fp, char *t)
 {
-	char *buf;
 	int i = 0;
+	char *ret;
 
-	for (i = 0; s->d_name[i] && name[i]; i++)
+	for (i = 0; s->d_name[i] && fil[i]; i++)
 	{
-		if (s->d_name[i] != name[i])
+		if (s->d_name[i] != fil[i])
 			break;
-
-		if (i == (len - 1) && !(s->d_name[i + 1]))
+		if (i == (l - 1) && !(s->d_name[i + 1]))
 		{
-			buf = strcat(fp, "/");
-			buf = strcat(buf, name);
-		       free(tmp);
-	       return (buf);
+			ret = strcat(fp, "/");
+			ret = strcat(ret, fil);
+			free(t);
+			return (ret);
 		}
 	}
-	return (err);
+	return (er);
 }
 /**
- * store_path - stores path string
- * @tmp: copy
- * @org: original path string
- * Return: tmp, org, or err
+ *save_path - saves a copy of the PATH string
+ *@tmp: copy to be made of PATH
+ *@path: string containing original PATH value
+ *
+ *Return: success - tmp first time, path every other time, else error
  */
-char *store_path(char *tmp, char *org)
+char *save_path(char *tmp, char *path)
 {
 	int i = 0;
 
 	if (!tmp)
 	{
 		tmp = malloc(sizeof(char) * 100);
-		while (org[i])
+		while (path[i])
 		{
-			tmp[i] = org[i];
-				i++;
-				tmp[i] = '\0';
+			tmp[i] = path[i];
+			i++;
+			tmp[i] = '\0';
 		}
 		i = 0;
 		return (tmp);
@@ -103,12 +101,12 @@ char *store_path(char *tmp, char *org)
 	{
 		while (tmp[i])
 		{
-			org[i] = tmp[i];
+			path[i] = tmp[i];
 			i++;
-			org[i] = '\0';
+			path[i] = '\0';
 		}
 		i = 0;
-		return (org);
+		return (path);
 	}
-	return ("Error");
+	return ("error");
 }
